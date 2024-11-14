@@ -49,3 +49,50 @@ class User(AbstractUser):
     class Meta:
         verbose_name = "user"
         verbose_name_plural = "users"
+
+
+
+class Payment(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        verbose_name="user",
+        help_text="indicate user",
+        related_name="payments",
+    )
+    date = models.DateTimeField(
+        auto_now_add=True, verbose_name="date", help_text="indicate date"
+    )
+    course = models.ForeignKey(
+        "course.Course",
+        on_delete=models.CASCADE,
+        verbose_name="course",
+        help_text="indicate course",
+        related_name="payments",
+        blank=True,
+        null=True,
+    )
+    lesson = models.ForeignKey(
+        "course.Lesson",
+        on_delete=models.CASCADE,
+        verbose_name="lesson",
+        help_text="indicate lesson",
+        related_name="payments",
+        blank=True,
+        null=True,
+    )
+    amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        verbose_name="amount",
+    )
+    payment_method = models.CharField(
+        max_length=15,
+        verbose_name="payment method",
+        help_text="indicate payment method",
+        choices=(("cash", "cash"), ("transfer", "transfer")),
+    )
+
+    class Meta:
+        verbose_name = "payment"
+        verbose_name_plural = "payments"
