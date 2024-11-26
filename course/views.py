@@ -1,17 +1,21 @@
 from rest_framework.generics import (CreateAPIView, DestroyAPIView,
                                      ListAPIView, RetrieveAPIView,
                                      UpdateAPIView)
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.viewsets import ModelViewSet
-
 from users.permissions import IsModer, IsOwner
-from .models import Course, Lesson
-from .serializers import CourseSerializer, CourseDetailSerializer, LessonSerializer
+from .models import Course, Lesson, Subscription
+from .paginators import CustomPagination
+from .serializers import CourseSerializer, CourseDetailSerializer, LessonSerializer, SubscriptionSerializer
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from django.shortcuts import get_object_or_404
 
 
 class CourseViewSet(ModelViewSet):
     queryset = Course.objects.all()
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
+    pagination_class = CustomPagination
 
     def get_serializer_class(self):
         if self.action == 'retrieve':
@@ -23,20 +27,20 @@ class CourseViewSet(ModelViewSet):
         course.owner = self.request.user
         course.save()
 
-    def get_permissions(self):
-        if self.action == 'create':
-            self.permission_classes = (~IsModer,)
-        elif self.action in ['update', 'retrieve']:
-            self.permission_classes = (IsModer | IsOwner,)
-        elif self.action == 'destroy':
-            self.permission_classes = (IsOwner | ~IsModer,)
-        return super().get_permissions()
+    # def get_permissions(self):
+    #     if self.action == 'create':
+    #         self.permission_classes = (~IsModer,)
+    #     elif self.action in ['update', 'retrieve']:
+    #         self.permission_classes = (IsModer | IsOwner,)
+    #     elif self.action == 'destroy':
+    #         self.permission_classes = (IsOwner | ~IsModer,)
+    #     return super().get_permissions()
 
 
 class LessonCreateAPIView(CreateAPIView):
     queryset = Lesson.objects.all()
     serializer_class = LessonSerializer
-    permission_classes = (~IsModer, IsAuthenticated)
+    # permission_classes = (~IsModer, AllowAny)
 
     def perform_create(self, serializer):
         lesson = serializer.save()
@@ -46,18 +50,59 @@ class LessonCreateAPIView(CreateAPIView):
 class LessonListAPIView(ListAPIView):
     queryset = Lesson.objects.all()
     serializer_class = LessonSerializer
+    pagination_class = CustomPagination
 
 class LessonRetrieveAPIView(RetrieveAPIView):
     queryset = Lesson.objects.all()
     serializer_class = LessonSerializer
-    permission_classes = (IsAuthenticated, IsModer | IsOwner)
+    # permission_classes = (IsAuthenticated, IsModer | IsOwner)
 
 class LessonUpdateAPIView(UpdateAPIView):
     queryset = Lesson.objects.all()
     serializer_class = LessonSerializer
-    permission_classes = (IsAuthenticated, IsModer | IsOwner)
+    # permission_classes = (IsAuthenticated, IsModer | IsOwner)
 
 class LessonDestroyAPIView(DestroyAPIView):
     queryset = Lesson.objects.all()
     serializer_class = LessonSerializer
-    permission_classes = (IsAuthenticated, IsModer | IsOwner)
+    # permission_classes = (IsAuthenticated, IsModer | IsOwner)
+
+
+class SubscriptionAPIView(APIView):
+    # permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        user = request.user
+        course_id = request.data.get('course_id')
+        course = get_object_or_404(Course, id=course_id)
+
+        subscription = Subscription.objects.filter(user=user, course=course)
+
+        if subscription.exists():
+            message = 'Subscription already exists'
+        else:
+            Subscription.objects.create(user=user, course=course)
+            message = 'Subscription added'
+
+        return Response({"message": message})
+
+    def get(self, request, *args, **kwargs):
+        user = request.user
+        subscriptions = Subscription.objects.filter(user=user)
+        serializer = SubscriptionSerializer(subscriptions, many=True)
+        return Response(serializer.data)
+
+    def delete(self, request, *args, **kwargs):
+        user = request.user
+        course_id = request.data.get('course_id')
+        course = get_object_or_404(Course, id=course_id)
+
+        subscription = Subscription.objects.filter(user=user, course=course)
+
+        if subscription.exists():
+            subscription.delete()
+            message = 'Subscription removed'
+        else:
+            message = 'Subscription does not exist'
+
+        return Response({"message": message})
