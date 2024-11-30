@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework_simplejwt",
     "django_filters",
+    'drf_yasg',
     "users",
     "course",
 ]
@@ -137,3 +138,6 @@ SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1)
 }
+
+STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "your_default_secret_key")
+STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY", "your_default_publishable_key")

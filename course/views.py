@@ -4,12 +4,15 @@ from rest_framework.generics import (CreateAPIView, DestroyAPIView,
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.viewsets import ModelViewSet
 from users.permissions import IsModer, IsOwner
-from .models import Course, Lesson, Subscription
+from .models import Course, Lesson, Subscription, Payment
 from .paginators import CustomPagination
 from .serializers import CourseSerializer, CourseDetailSerializer, LessonSerializer, SubscriptionSerializer
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework import status
 from django.shortcuts import get_object_or_404
+from .serializers import PaymentSerializer
+from .serveces import create_product, create_price, create_checkout_session
 
 
 class CourseViewSet(ModelViewSet):
@@ -106,3 +109,27 @@ class SubscriptionAPIView(APIView):
             message = 'Subscription does not exist'
 
         return Response({"message": message})
+
+
+class CreatePaymentView(APIView):
+    def post(self, request, *args, **kwargs):
+        course_id = request.data.get('course_id')
+        course = get_object_or_404(Course, id=course_id)
+        amount = int(course.price * 100)
+
+        product = create_product(course.name)
+        price = create_price(product.id, amount)
+        session = create_checkout_session(price.id, 'https://127.1.0.1:8000/', 'https://example.com/cancel')
+
+        payment = Payment.objects.create(
+            user=request.user,
+            course=course,
+            stripe_product_id=product.id,
+            stripe_price_id=price.id,
+            stripe_session_id=session.id,
+            amount=course.price,
+            link=session.url
+        )
+
+        serializer = PaymentSerializer(payment)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)

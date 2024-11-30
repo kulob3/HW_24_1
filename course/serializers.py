@@ -4,6 +4,7 @@ from rest_framework import serializers
 from course.models import Course, Lesson
 from .validators import validate_youtube_url
 from .models import Subscription
+from .models import Payment
 
 
 class LessonSerializer(ModelSerializer):
@@ -34,6 +35,13 @@ class CourseDetailSerializer(ModelSerializer):
 class SubscriptionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Subscription
+        fields = '__all__'
+
+
+
+class PaymentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Payment
         fields = '__all__'
 
 
