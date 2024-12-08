@@ -42,6 +42,9 @@ class User(AbstractUser):
         verbose_name="avatar",
         help_text="indicate your avatar",
     )
+    is_active = models.BooleanField(
+        default=True, verbose_name="is active", help_text="indicate your active"
+    )
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []

@@ -13,6 +13,7 @@ from rest_framework import status
 from django.shortcuts import get_object_or_404
 from .serializers import PaymentSerializer
 from .serveces import create_product, create_price, create_checkout_session
+from .tasks import send_course_update_email
 
 
 class CourseViewSet(ModelViewSet):
@@ -133,3 +134,16 @@ class CreatePaymentView(APIView):
 
         serializer = PaymentSerializer(payment)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+# views.py
+
+
+class CourseUpdateAPIView(UpdateAPIView):
+    queryset = Course.objects.all()
+    serializer_class = CourseSerializer
+
+    def perform_update(self, serializer):
+        course = serializer.save()
+        users = course.subscriptions.all().values_list('user__email', flat=True)
+        for user_email in users:
+            send_course_update_email.delay(user_email, course.name)
